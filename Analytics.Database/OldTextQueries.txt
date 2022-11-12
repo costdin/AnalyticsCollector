@@ -1,0 +1,77 @@
+﻿// Elastic funnel query on new index:
+{
+  "size": 0,
+  "aggs": {
+    "final_funnel": {
+      "filter": {
+        "nested": {
+          "path": "events",
+          "query": {
+            "bool": {
+              "filter": {
+                "term": {
+                  "events.elementId": "div1"
+                }
+              }
+            }
+          }
+        }
+      },
+      "aggs": {
+        "nested_aggr": {
+          "nested": {
+            "path": "events"
+          },
+          "aggs": {
+            "elementFilter": {
+              "filter": {
+                "bool": {
+                  "should": [
+                    {
+                      "term": {
+                        "events.elementId": "div13"
+                      }
+                    },
+                    {
+                      "term": {
+                        "events.elementId": "div23"
+                      }
+                    },
+                    {
+                      "term": {
+                        "events.elementId": "div35"
+                      }
+                    }
+                  ]
+                }
+              },
+              "aggs": {
+                "stats": {
+                  "scripted_metric": {
+                    "init_script": "state.funnels= new int[params['funnel'].length]; state.level=0; state.session=''",
+                    "map_script": "if (state.session!=doc['events.sessionId'][0]){state.level=0;} if (params['funnel'][state.level]==doc['events.elementId'][0]){\nstate.funnels[state.level]++;\nstate.level++;\nstate.level = state.level % params['funnel'].length;}state.session=doc['events.sessionId'][0];",
+                    "reduce_script": "int[] result = new int[states[0].funnels.length]; for(s in states) {for(int i=0;i<states[0].funnels.length;i++){ result[i] += s.funnels[i]; } } return result;",
+                    "params": {
+                      "funnel": [
+                        "div13",
+                        "div23",
+                        "div35"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+
+ funnel_map:
+"script": {
+  "lang": "painless",
+  "source": "int level = 0; int position = 0; while (position < params['_source']['events'].length && params['_source']['events'][position].elementId != params['funnel'][level]){ position++; } while (position < params['_source']['events'].length){ state.funnels[level]++; level++; level = level % params['funnel'].length; position++; while (position < params['_source']['events'].length && params['_source']['events'][position].elementId != params['funnel'][level]){ position++; } }"
+}

@@ -1,0 +1,9 @@
+A simple analytics application
+
+The frontend is a small JS file (`panopticon.js`), that once added to a page
+starts collecting analytics according to its configuration. It can filter events
+by type and sends events to the backend in bulk, every N seconds.
+
+The backend is a simple .NET Core application that uses ElasticSearch to store
+analytics events and do funnels analysis. It uses `painless` (https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-scripting-painless.html)
+to query the ElasticSearch backend.
